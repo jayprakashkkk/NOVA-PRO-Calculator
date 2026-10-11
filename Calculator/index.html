@@ -1,0 +1,2197 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nova Pro Calculator</title>
+
+<style>
+/* =========================================
+   1. GLOBAL SETTINGS AND THEME
+   ========================================= */
+
+/* Reset browser defaults and use predictable sizing */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --bg: #10111a;
+    --panel: #1b1e2b;
+    --display: #111520;
+    --key: #272b3a;
+    --key-hover: #383d50;
+    --purple: #8975ff;
+    --purple-hover: #7661ed;
+    --text: #f5f5fa;
+    --muted: #959caf;
+    --red: #ff777e;
+    --border: #2b3042;
+    --green: #66d9a5;
+}
+
+/* Prevent the document itself from scrolling */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overscroll-behavior: none;
+}
+
+/* =========================================
+   2. APP SHELL
+   ========================================= */
+
+/* The app occupies exactly the visible viewport */
+.app {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* Header stays visible and does not shrink */
+header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 42px;
+}
+
+.logo {
+    font-size: 25px;
+    font-weight: 900;
+    letter-spacing: -1px;
+}
+
+.logo span {
+    color: var(--purple);
+}
+
+.subtitle {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+/* Main area: navigation and tool content */
+.layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 12px;
+    overflow: hidden;
+}
+
+/* Shared panel appearance */
+.sidebar,
+.main {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* =========================================
+   3. SIDEBAR AND TOOL NAVIGATION
+   ========================================= */
+
+.sidebar {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar h3 {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 1.4px;
+}
+
+.tools {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-height: 0;
+}
+
+/* Sidebar tool buttons */
+.tool {
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 12px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 650;
+    text-align: left;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+}
+
+.tool:hover {
+    background: var(--key);
+    color: white;
+}
+
+.tool.active {
+    background: var(--purple);
+    color: white;
+}
+
+/* =========================================
+   4. MAIN CONTENT AND TOOL PANELS
+   ========================================= */
+
+.main {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+}
+
+.tool-panel {
+    display: none;
+    min-height: 0;
+    min-width: 0;
+}
+
+.tool-panel.active {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.main h2 {
+    font-size: 20px;
+    font-weight: 750;
+    margin-bottom: 10px;
+    flex: 0 0 auto;
+}
+
+/* =========================================
+   5. BASIC CALCULATOR DISPLAY
+   ========================================= */
+
+.display {
+    flex: 0 0 auto;
+    min-height: 88px;
+    padding: 10px 16px;
+    margin-bottom: 10px;
+    background: var(--display);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    overflow: hidden;
+}
+
+.expression {
+    width: 100%;
+    min-height: 22px;
+    color: var(--muted);
+    font-size: 16px;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.result {
+    width: 100%;
+    color: #35d07f;
+    font-size: clamp(30px, 4vw, 48px);
+    line-height: 1.15;
+    font-weight: 750;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+/* =========================================
+   6. KEYPAD AND LARGE BUTTON TEXT
+   ========================================= */
+
+.keypad {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.key {
+    min-width: 0;
+    min-height: 0;
+    border: 0;
+    border-radius: 13px;
+    background: var(--key);
+    color: var(--text);
+
+    /* Large, bold numbers sized to their buttons */
+    font-size: clamp(25px, 3.2vw, 39px);
+    font-weight: 700;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+}
+
+.key:hover {
+    background: var(--key-hover);
+}
+
+.key:active {
+    transform: scale(.96);
+}
+
+/* Operators get a slightly larger font */
+.key.operator {
+    color: var(--purple);
+    font-size: clamp(30px, 3.5vw, 43px);
+    font-weight: 800;
+}
+
+/* Clear and delete buttons */
+.key.danger {
+    color: var(--red);
+    font-size: clamp(23px, 2.7vw, 32px);
+}
+
+/* Equal button */
+.key.equal {
+    background: var(--purple);
+    color: white;
+    font-size: clamp(32px, 3.7vw, 44px);
+}
+
+.key.equal:hover {
+    background: var(--purple-hover);
+}
+
+/* =========================================
+   7. INPUTS, FORMS AND OUTPUTS
+   ========================================= */
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+    min-height: 0;
+}
+
+.field {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field label {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+input,
+select {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    padding: 9px 11px;
+    background: var(--display);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    outline: none;
+    font-size: 15px;
+}
+
+input:focus,
+select:focus {
+    border-color: var(--purple);
+}
+
+select option {
+    background: var(--panel);
+    color: var(--text);
+}
+
+/* Main action button */
+.action {
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 10px 18px;
+    margin-top: 12px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--purple);
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.action:hover {
+    background: var(--purple-hover);
+}
+
+/* Output box for additional calculators */
+.output {
+    flex: 0 0 auto;
+    min-height: 60px;
+    padding: 12px 15px;
+    margin-top: 12px;
+    background: var(--display);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: #35d07f;
+    font-size: clamp(15px, 1.8vw, 19px);
+    line-height: 1.6;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+
+/* Supporting notes */
+.help {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* Footer */
+footer {
+    flex: 0 0 auto;
+    text-align: center;
+    padding: 2px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+/* =========================================
+   8. TABLET AND MOBILE RESPONSIVENESS
+   ========================================= */
+
+@media (max-width: 750px) {
+    .app {
+        padding: 7px;
+        gap: 7px;
+    }
+
+    /* Navigation moves above the calculator */
+    .layout {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 7px;
+    }
+
+    .sidebar {
+        padding: 7px;
+        border-radius: 13px;
+    }
+
+    .sidebar h3 {
+        display: none;
+    }
+
+    /* Horizontal navigation; only this row can scroll */
+    .tools {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+    }
+
+    .tools::-webkit-scrollbar {
+        display: none;
+    }
+
+    .tool {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        padding: 9px 12px;
+        font-size: 12px;
+    }
+
+    .main {
+        padding: 9px;
+        border-radius: 13px;
+    }
+
+    .main h2 {
+        font-size: 17px;
+        margin-bottom: 7px;
+    }
+
+    .display {
+        min-height: 70px;
+        padding: 8px 12px;
+        margin-bottom: 7px;
+    }
+
+    .keypad {
+        gap: 5px;
+    }
+
+    .key {
+        border-radius: 10px;
+        font-size: clamp(24px, 7vw, 36px);
+    }
+
+    .key.operator {
+        font-size: clamp(28px, 8vw, 39px);
+    }
+
+    .key.danger {
+        font-size: clamp(20px, 5.5vw, 29px);
+    }
+
+    .form-grid {
+        gap: 8px;
+    }
+
+    input,
+    select {
+        min-height: 38px;
+        padding: 7px 9px;
+        font-size: 14px;
+    }
+
+    .field label {
+        font-size: 12px;
+    }
+
+    .action {
+        min-height: 38px;
+        margin-top: 8px;
+    }
+
+    .output {
+        min-height: 48px;
+        margin-top: 8px;
+        padding: 9px 11px;
+    }
+}
+
+/* =========================================
+   9. SHORT SCREEN ADJUSTMENTS
+   ========================================= */
+
+@media (max-height: 700px) {
+    .app {
+        padding: 6px;
+        gap: 5px;
+    }
+
+    header {
+        min-height: 30px;
+    }
+
+    .logo {
+        font-size: 20px;
+    }
+
+    .subtitle {
+        font-size: 10px;
+    }
+
+    .sidebar,
+    .main {
+        padding: 8px;
+    }
+
+    .tool {
+        padding: 8px;
+    }
+
+    .main h2 {
+        font-size: 17px;
+        margin-bottom: 5px;
+    }
+
+    .display {
+        min-height: 60px;
+        padding: 5px 10px;
+        margin-bottom: 5px;
+    }
+
+    .result {
+        font-size: clamp(24px, 5vh, 34px);
+    }
+
+    .expression {
+        font-size: 13px;
+        min-height: 17px;
+    }
+
+    .keypad {
+        gap: 4px;
+    }
+
+    .form-grid {
+        gap: 7px;
+        margin-top: 5px;
+    }
+
+    .field {
+        gap: 4px;
+    }
+
+    .action {
+        margin-top: 7px;
+    }
+
+    .output {
+        margin-top: 7px;
+        padding: 7px 10px;
+        font-size: 15px;
+    }
+}
+
+/* Extra compact controls on narrow, short screens */
+@media (max-width: 750px) and (max-height: 620px) {
+    .tool {
+        padding: 6px 9px;
+        font-size: 11px;
+    }
+
+    .display {
+        min-height: 52px;
+    }
+
+    .keypad {
+        gap: 3px;
+    }
+
+    .main h2 {
+        font-size: 15px;
+    }
+
+    .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Respect devices that request reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* =========================================
+   SCIENTIFIC CALCULATOR: PHYSICAL KEYPAD
+   ========================================= */
+.sci-shell {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    gap: 8px;
+}
+.sci-screen {
+    flex: 0 0 auto;
+    min-height: 70px;
+    padding: 9px 14px;
+    background: var(--display);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    overflow: hidden;
+}
+.sci-expression {
+    width: 100%;
+    min-height: 19px;
+    color: var(--muted);
+    font-size: clamp(12px, 1.5vw, 16px);
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+.sci-result {
+    width: 100%;
+    color: var(--text);
+    font-size: clamp(23px, 3vw, 36px);
+    line-height: 1.1;
+    font-weight: 750;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+.sci-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 11px;
+    min-height: 20px;
+}
+.sci-status strong { color: var(--green); }
+.sci-keypad {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: repeat(7, minmax(0, 1fr));
+    gap: clamp(3px, .55vw, 7px);
+}
+.sci-key {
+    min-width: 0;
+    min-height: 0;
+    border: 0;
+    border-radius: 9px;
+    background: var(--key);
+    color: var(--text);
+    font-size: clamp(12px, 1.55vw, 19px);
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background .15s, transform .1s;
+}
+.sci-key:hover { background: var(--key-hover); }
+.sci-key:active { transform: scale(.96); }
+.sci-key.function { color: #b6aaff; }
+.sci-key.control { color: var(--green); }
+.sci-key.danger { color: var(--red); }
+.sci-key.equal { background: var(--purple); color: white; }
+.sci-key.equal:hover { background: var(--purple-hover); }
+.sci-key.active { outline: 2px solid var(--purple); background: #393353; }
+@media (max-width: 750px) {
+    .sci-shell { gap: 5px; }
+    .sci-screen { min-height: 58px; padding: 6px 10px; }
+    .sci-keypad { gap: 4px; }
+    .sci-key { border-radius: 7px; font-size: clamp(11px, 3vw, 17px); }
+}
+@media (max-height: 700px) {
+    .sci-shell { gap: 4px; }
+    .sci-screen { min-height: 50px; padding: 4px 9px; }
+    .sci-keypad { gap: 3px; }
+    .sci-key { font-size: clamp(11px, 1.4vw, 16px); }
+}
+
+
+/* Green answers across every calculator tool */
+.result,
+.output {
+    color: #00ff66 !important;
+    font-weight: 700;
+}
+
+
+.display.result-only .expression {
+    display: none;
+}
+
+.display.result-only .result {
+    font-size: clamp(30px, 4vw, 48px);
+}
+
+.display.live-preview .result {
+    font-size: 18px;
+    color: #00ff66 !important;
+}
+
+/* = dabane ke baad sirf bada answer */
+.result-only #expression {
+    display: none !important;
+}
+
+.result-only #result {
+    font-size: clamp(40px, 6vw, 64px) !important;
+    font-weight: 700;
+    color: #00ff66 !important;
+}
+
+/* Answer ko display ke right side mein rakho */
+.result-only {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+}
+
+
+.display.result-only .expression {
+    display: none !important;
+}
+
+.display.result-only .result {
+    font-size: clamp(40px, 6vw, 64px) !important;
+    font-weight: 700;
+    color: #00ff66 !important;
+}
+
+.display.live-preview .result {
+    font-size: 18px;
+    color: #00ff66 !important;
+}
+
+</style>
+</head>
+
+<body>
+<!-- =========================================
+     APPLICATION HTML
+     ========================================= -->
+
+<div class="app">
+
+    <!-- Brand and subtitle -->
+    <header>
+        <div>
+            <div class="logo">NOVA <span>PRO</span></div>
+            <div class="subtitle">Smart all-in-one calculator</div>
+        </div>
+    </header>
+
+    <div class="layout">
+
+        <!-- =====================================
+             SIDEBAR
+             ===================================== -->
+        <aside class="sidebar">
+            <h3>CALCULATOR TOOLS</h3>
+
+            <!-- Each button opens the matching tool panel -->
+            <nav class="tools" aria-label="Calculator tools">
+                <button class="tool active" data-tool="basic"># Basic</button>
+                <button class="tool" data-tool="scientific">∑ Scientific</button>
+                <button class="tool" data-tool="currency">⇄ Currency</button>
+                <button class="tool" data-tool="unit">⚖ Unit Converter</button>
+                <button class="tool" data-tool="gst">₹ GST</button>
+                <button class="tool" data-tool="emi">▦ EMI</button>
+                <button class="tool" data-tool="interest">% Interest</button>
+                <button class="tool" data-tool="discount">% Discount</button>
+            </nav>
+        </aside>
+
+        <!-- =====================================
+             MAIN TOOL CONTENT
+             ===================================== -->
+        <main class="main">
+
+            <!-- =================================
+                 BASIC CALCULATOR
+                 ================================= -->
+            <section id="basic" class="tool-panel active">
+                <h2>Basic Calculator</h2>
+
+                <!-- Current expression and final result -->
+                <div class="display" aria-live="polite">
+                    <div class="expression" id="expression"></div>
+                    <div class="result" id="result">0</div>
+                </div>
+
+                <!-- Four-column, five-row calculator keypad -->
+                <div class="keypad" id="keypad">
+                    <button class="key danger" data-action="clear">AC</button>
+                    <button class="key danger" data-action="back">⌫</button>
+                    <button class="key operator" data-value="%">%</button>
+                    <button class="key operator" data-value="÷">÷</button>
+
+                    <button class="key" data-value="7">7</button>
+                    <button class="key" data-value="8">8</button>
+                    <button class="key" data-value="9">9</button>
+                    <button class="key operator" data-value="×">×</button>
+
+                    <button class="key" data-value="4">4</button>
+                    <button class="key" data-value="5">5</button>
+                    <button class="key" data-value="6">6</button>
+                    <button class="key operator" data-value="-">−</button>
+
+                    <button class="key" data-value="1">1</button>
+                    <button class="key" data-value="2">2</button>
+                    <button class="key" data-value="3">3</button>
+                    <button class="key operator" data-value="+">+</button>
+
+                    <button class="key" data-value="00">00</button>
+                    <button class="key" data-value="0">0</button>
+                    <button class="key" data-value=".">.</button>
+                    <button class="key equal" data-action="equal">=</button>
+                </div>
+            </section>
+
+            <!-- =================================
+                 SCIENTIFIC CALCULATOR
+                 ================================= -->
+            <section id="scientific" class="tool-panel">
+                <h2>Scientific Calculator</h2>
+
+                <div class="sci-shell">
+                    <!-- Screen: expression on top, evaluated answer below -->
+                    <div class="sci-screen" aria-live="polite">
+                        <div class="sci-expression" id="sciExpression"></div>
+                        <div class="sci-result" id="sciResult">0</div>
+                    </div>
+
+                    <!-- Physical-calculator style mode indicators -->
+                    <div class="sci-status">
+                        <span id="sciAngleLabel">DEG</span>
+                        <span id="sciShiftLabel">SHIFT: OFF</span>
+                        <span id="sciMemoryLabel">Ans: 0</span>
+                    </div>
+
+                    <!-- Scientific keypad. Shift changes selected function keys. -->
+                    <div class="sci-keypad" id="sciKeypad">
+                        <button class="sci-key control" data-sci-action="shift">SHIFT</button>
+                        <button class="sci-key control" data-sci-action="alpha">ALPHA</button>
+                        <button class="sci-key control" data-sci-action="angle">DEG/RAD</button>
+                        <button class="sci-key function" data-sci-insert="(">(</button>
+                        <button class="sci-key function" data-sci-insert=")">)</button>
+                        <button class="sci-key danger" data-sci-action="back">DEL</button>
+
+                        <button class="sci-key function" data-sci-insert="sin(">sin</button>
+                        <button class="sci-key function" data-sci-insert="cos(">cos</button>
+                        <button class="sci-key function" data-sci-insert="tan(">tan</button>
+                        <button class="sci-key function" data-sci-insert="^2">x²</button>
+                        <button class="sci-key function" data-sci-insert="^">xʸ</button>
+                        <button class="sci-key danger" data-sci-action="clear">AC</button>
+
+                        <button class="sci-key function" data-sci-insert="asin(">sin⁻¹</button>
+                        <button class="sci-key function" data-sci-insert="acos(">cos⁻¹</button>
+                        <button class="sci-key function" data-sci-insert="atan(">tan⁻¹</button>
+                        <button class="sci-key function" data-sci-insert="sqrt(">√</button>
+                        <button class="sci-key function" data-sci-insert="^(1/3)">∛</button>
+                        <button class="sci-key function" data-sci-insert="!">x!</button>
+
+                        <button class="sci-key function" data-sci-insert="log(">log</button>
+                        <button class="sci-key function" data-sci-insert="ln(">ln</button>
+                        <button class="sci-key function" data-sci-insert="10^(">10ˣ</button>
+                        <button class="sci-key function" data-sci-insert="1/(">1/x</button>
+                        <button class="sci-key function" data-sci-insert="pi">π</button>
+                        <button class="sci-key function" data-sci-insert="e">e</button>
+
+                        <button class="sci-key" data-sci-insert="7">7</button>
+                        <button class="sci-key" data-sci-insert="8">8</button>
+                        <button class="sci-key" data-sci-insert="9">9</button>
+                        <button class="sci-key function" data-sci-insert="/">÷</button>
+                        <button class="sci-key function" data-sci-insert="%">%</button>
+                        <button class="sci-key function" data-sci-insert="Ans">Ans</button>
+
+                        <button class="sci-key" data-sci-insert="4">4</button>
+                        <button class="sci-key" data-sci-insert="5">5</button>
+                        <button class="sci-key" data-sci-insert="6">6</button>
+                        <button class="sci-key function" data-sci-insert="*">×</button>
+                        <button class="sci-key" data-sci-insert="-">−</button>
+                        <button class="sci-key equal" data-sci-action="equals">=</button>
+
+                        <button class="sci-key" data-sci-insert="1">1</button>
+                        <button class="sci-key" data-sci-insert="2">2</button>
+                        <button class="sci-key" data-sci-insert="3">3</button>
+                        <button class="sci-key function" data-sci-insert="+">+</button>
+                        <button class="sci-key" data-sci-insert="0">0</button>
+                        <button class="sci-key" data-sci-insert=".">.</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================
+                 CURRENCY CONVERTER
+                 ================================= -->
+            <section id="currency" class="tool-panel">
+                <h2>Currency Converter</h2>
+
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="currencyAmount">Amount</label>
+                        <input type="number" id="currencyAmount"
+                               value="1" min="0" step="any">
+                    </div>
+
+                    <div class="field">
+                        <label for="fromCurrency">From</label>
+                        <select id="fromCurrency">
+                            <option>INR</option>
+                            <option>USD</option>
+                            <option>EUR</option>
+                            <option>GBP</option>
+                            <option>JPY</option>
+                            <option>AED</option>
+                            <option>CAD</option>
+                            <option>AUD</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="toCurrency">To</label>
+                        <select id="toCurrency">
+                            <option>USD</option>
+                            <option>INR</option>
+                            <option>EUR</option>
+                            <option>GBP</option>
+                            <option>JPY</option>
+                            <option>AED</option>
+                            <option>CAD</option>
+                            <option>AUD</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="action" id="currencyButton">Convert</button>
+                <div class="output" id="currencyOutput" aria-live="polite">
+                    Enter an amount and convert.
+                </div>
+                <p class="help">Exchange rates are retrieved online and may not be real-time trading rates.</p>
+            </section>
+
+            <!-- =================================
+                 UNIT CONVERTER
+                 ================================= -->
+            <section id="unit" class="tool-panel">
+                <h2>Unit Converter</h2>
+
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="unitCategory">Category</label>
+                        <select id="unitCategory">
+                            <option value="length">Length</option>
+                            <option value="weight">Weight</option>
+                            <option value="temperature">Temperature</option>
+                            <option value="time">Time</option>
+                            <option value="speed">Speed</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="unitValue">Value</label>
+                        <input type="number" id="unitValue" value="1" step="any">
+                    </div>
+
+                    <div class="field">
+                        <label for="unitFrom">From</label>
+                        <select id="unitFrom"></select>
+                    </div>
+
+                    <div class="field">
+                        <label for="unitTo">To</label>
+                        <select id="unitTo"></select>
+                    </div>
+                </div>
+
+                <button class="action" id="unitButton">Convert</button>
+                <div class="output" id="unitOutput" aria-live="polite">
+                    Result: 0
+                </div>
+            </section>
+
+            <!-- =================================
+                 GST CALCULATOR
+                 ================================= -->
+            <section id="gst" class="tool-panel">
+                <h2>GST Calculator</h2>
+
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="gstAmount">Amount (₹)</label>
+                        <input type="number" id="gstAmount"
+                               value="1000" min="0" step="any">
+                    </div>
+
+                    <div class="field">
+                        <label for="gstRate">GST Rate</label>
+                        <select id="gstRate">
+                            <option value="5">5%</option>
+                            <option value="12">12%</option>
+                            <option value="18" selected>18%</option>
+                            <option value="28">28%</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="gstMode">Calculation</label>
+                        <select id="gstMode">
+                            <option value="add">Add GST</option>
+                            <option value="remove">Remove GST</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="action" id="gstButton">Calculate GST</button>
+                <div class="output" id="gstOutput" aria-live="polite">
+                    Result: ₹0
+                </div>
+            </section>
+
+            <!-- =================================
+                 EMI CALCULATOR
+                 ================================= -->
+            <section id="emi" class="tool-panel">
+                <h2>EMI Calculator</h2>
+
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="loan">Loan Amount (₹)</label>
+                        <input type="number" id="loan"
+                               value="500000" min="0" step="any">
+                    </div>
+
+                    <div class="field">
+                        <label for="emiRate">Annual Interest (%)</label>
+                        <input type="number" id="emiRate"
+                               value="8.5" min="0" step="any">
+                    </div>
+
+                    <div class="field">
+                        <label for="years">Duration (years)</label>
+                        <input type="number" id="years"
+                               value="5" min="0" step="any">
+                    </div>
+                </div>
+
+                <button class="action" id="emiButton">Calculate EMI</button>
+                <div class="output" id="emiOutput" aria-live="polite">
+                    Monthly EMI: ₹0
+                </div>
+            </section>
+
+            <!-- =================================
+                 INTEREST CALCULATOR
+                 ================================= -->
+            <section id="interest" class="tool-panel">
+                <h2>Interest Calculator</h2>
+
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="principal">Principal (₹)</label>
+                        <input type="number" id="principal"
+                               value="10000" min="0" step="any">
+                    </div>
+
+                    <div class="field">
+                        <label for="interestRate">Annual Rate (%)</label>
+                        <input type="number" id="interestRate"
+                               value="5" min="0" step="any">
+                    </div>
+
+                    <div class="field">
+                        <label for="interestTime">Time (years)</label>
+                        <input type="number" id="interestTime"
+                               value="2" min="0" step="any">
+                    </div>
+
+                    <div class="field">
+                        <label for="interestType">Interest Type</label>
+                        <select id="interestType">
+                            <option value="simple">Simple Interest</option>
+                            <option value="compound">Compound Interest</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="action" id="interestButton">Calculate</button>
+                <div class="output" id="interestOutput" aria-live="polite">
+                    Total: ₹0
+                </div>
+            </section>
+
+            <!-- =================================
+                 DISCOUNT CALCULATOR
+                 ================================= -->
+            <section id="discount" class="tool-panel">
+                <h2>Discount Calculator</h2>
+
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="price">Original Price (₹)</label>
+                        <input type="number" id="price"
+                               value="2000" min="0" step="any">
+                    </div>
+
+                    <div class="field">
+                        <label for="discountRate">Discount (%)</label>
+                        <input type="number" id="discountRate"
+                               value="20" min="0" max="100" step="any">
+                    </div>
+                </div>
+
+                <button class="action" id="discountButton">
+                    Calculate Discount
+                </button>
+
+                <div class="output" id="discountOutput" aria-live="polite">
+                    Final Price: ₹0
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <footer>Nova Pro Calculator</footer>
+</div>
+
+<script>
+/* =========================================
+   1. COMMON HELPERS
+   ========================================= */
+
+/* Format numbers without showing unnecessary decimal zeros */
+function formatNumber(value, maximumDigits = 10) {
+    if (!Number.isFinite(value)) return "Error";
+
+    return new Intl.NumberFormat("en-IN", {
+        maximumFractionDigits: maximumDigits
+    }).format(Number(value.toPrecision(12)));
+}
+
+/* Read a numeric input and reject invalid values */
+function readNumber(id) {
+    const value = document.getElementById(id).value.trim();
+
+    if (value === "") {
+        throw new Error("Please enter a value.");
+    }
+
+    const number = Number(value);
+
+    if (!Number.isFinite(number)) {
+        throw new Error("Please enter a valid number.");
+    }
+
+    return number;
+}
+
+/* Show a result using text rather than injecting arbitrary HTML */
+function showText(id, text) {
+    document.getElementById(id).textContent = text;
+}
+
+/* =========================================
+   2. TOOL NAVIGATION
+   ========================================= */
+
+/* Switch between calculator tools */
+const toolButtons = document.querySelectorAll(".tool");
+const panels = document.querySelectorAll(".tool-panel");
+
+toolButtons.forEach(button => {
+    button.addEventListener("click", () => {
+        toolButtons.forEach(item => item.classList.remove("active"));
+        panels.forEach(panel => panel.classList.remove("active"));
+
+        button.classList.add("active");
+        document.getElementById(button.dataset.tool).classList.add("active");
+    });
+});
+
+/* =========================================
+   3. BASIC CALCULATOR
+   ========================================= */
+
+let basicExpression = "";
+let basicHasResult = false;
+
+const expressionDisplay = document.getElementById("expression");
+const resultDisplay = document.getElementById("result");
+
+/* Update the expression area */
+
+function renderBasic() {
+    expressionDisplay.textContent = basicExpression;
+
+    const display = expressionDisplay.parentElement;
+
+    display.classList.toggle("result-only", basicHasResult);
+    display.classList.toggle("live-preview", !basicHasResult);
+
+    if (!basicHasResult) {
+        if (basicExpression === "") {
+            resultDisplay.textContent = "0";
+        } else {
+            try {
+                const result = evaluateBasic(basicExpression);
+                resultDisplay.textContent = formatNumber(result);
+            } catch {
+                resultDisplay.textContent = "";
+            }
+        }
+    }
+}
+
+
+/* Append a number, decimal or operator */
+function appendBasic(value) {
+    // After '=', a digit starts a fresh calculation, while an operator
+    // continues from the previous answer (e.g. 7×9 = 63, then +2 => 63+2).
+    if (basicHasResult) {
+        if (/^[0-9.]$/.test(value)) {
+            basicExpression = "";
+        }
+        // For an operator, basicExpression already contains the numeric answer.
+    }
+
+    basicHasResult = false;
+
+    // Prevent more than one decimal point in the current number.
+    if (value === ".") {
+        const current = basicExpression.split(/[+\-×÷%]/).pop();
+        if (current.includes(".")) return;
+        if (current === "") value = "0.";
+    }
+
+    basicExpression += value;
+    renderBasic();
+}
+
+/* Clear the expression and answer */
+function clearBasic() {
+    basicExpression = "";
+    basicHasResult = false;
+    resultDisplay.textContent = "0";
+    renderBasic();
+}
+
+/* Remove the last entered character */
+function deleteBasic() {
+    basicExpression = basicExpression.slice(0, -1);
+    basicHasResult = false;
+    renderBasic();
+}
+
+/*
+   Convert the basic expression to tokens and evaluate it.
+   The parser supports arithmetic, parentheses and trailing percentages.
+   It does not execute arbitrary JavaScript.
+*/
+function evaluateBasic(input) {
+    const tokens = [];
+    const pattern = /\s*(\d+(?:\.\d*)?|\.\d+|[()+\-×÷*/%])/gy;
+    let position = 0;
+
+    while (position < input.length) {
+        pattern.lastIndex = position;
+        const match = pattern.exec(input);
+
+        if (!match) throw new Error("Invalid character");
+
+        tokens.push(match[1]);
+        position = pattern.lastIndex;
+    }
+
+    let index = 0;
+
+    function peek() {
+        return tokens[index];
+    }
+
+    function parseExpression() {
+        let value = parseTerm();
+
+        while (peek() === "+" || peek() === "-") {
+            const operator = tokens[index++];
+            const right = parseTerm();
+
+            value = operator === "+"
+                ? value + right
+                : value - right;
+        }
+
+        return value;
+    }
+
+    function parseTerm() {
+        let value = parseUnary();
+
+        while (peek() === "×" || peek() === "÷" || peek() === "*") {
+            const operator = tokens[index++];
+            const right = parseUnary();
+
+            if ((operator === "÷") && right === 0) {
+                throw new Error("Division by zero");
+            }
+
+            value = operator === "÷"
+                ? value / right
+                : value * right;
+        }
+
+        return value;
+    }
+
+    function parseUnary() {
+        if (peek() === "+") {
+            index++;
+            return parseUnary();
+        }
+
+        if (peek() === "-") {
+            index++;
+            return -parseUnary();
+        }
+
+        return parsePrimary();
+    }
+
+    function parsePrimary() {
+        const token = peek();
+
+        if (token === "(") {
+            index++;
+            const value = parseExpression();
+
+            if (peek() !== ")") throw new Error("Missing closing bracket");
+            index++;
+
+            return parsePercent(value);
+        }
+
+        if (token === undefined) throw new Error("Missing number");
+
+        if (/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(token)) {
+            index++;
+            return parsePercent(Number(token));
+        }
+
+        throw new Error("Invalid expression");
+    }
+
+    function parsePercent(value) {
+        if (peek() === "%") {
+            index++;
+            return value / 100;
+        }
+
+        return value;
+    }
+
+    const result = parseExpression();
+
+    if (index !== tokens.length) {
+        throw new Error("Unexpected input");
+    }
+
+    if (!Number.isFinite(result)) {
+        throw new Error("Invalid result");
+    }
+
+    return result;
+}
+
+/* Calculate the current basic expression */
+function calculateBasic() {
+    if (!basicExpression) return;
+
+    try {
+        const result = evaluateBasic(basicExpression);
+
+        // Store the numeric answer so the next operator continues from it.
+        basicExpression = String(result);
+        resultDisplay.textContent = formatNumber(result);
+        basicHasResult = true;
+
+        renderBasic();
+    } catch (error) {
+        resultDisplay.textContent = "Error";
+        basicHasResult = false;
+
+        renderBasic();
+    }
+}
+
+
+/* Handle clicks on the calculator keypad */
+document.getElementById("keypad").addEventListener("click", event => {
+    const button = event.target.closest("button");
+    if (!button) return;
+
+    if (button.dataset.action === "clear") clearBasic();
+    else if (button.dataset.action === "back") deleteBasic();
+    else if (button.dataset.action === "equal") calculateBasic();
+    else if (button.dataset.value !== undefined) {
+        appendBasic(button.dataset.value);
+    }
+});
+
+/* =========================================
+   4. SCIENTIFIC CALCULATOR
+   ========================================= */
+
+/*
+   Supported scientific functions:
+   sin, cos, tan, sqrt, log, ln, abs, floor, ceil
+   Constants: pi, e
+   Operators: +, -, *, /, %, ^ and parentheses
+
+   This recursive-descent parser avoids Function() and eval().
+*/
+
+function tokenizeScientific(input) {
+    const tokens = [];
+    const pattern =
+        /\s*(\d+(?:\.\d*)?(?:e[+-]?\d+)?|\.\d+(?:e[+-]?\d+)?|[a-zA-Z]+|[()+\-*/%^!])/iy;
+
+    let position = 0;
+
+    while (position < input.length) {
+        pattern.lastIndex = position;
+        const match = pattern.exec(input);
+
+        if (!match) {
+            throw new Error("Invalid character");
+        }
+
+        tokens.push(match[1]);
+        position = pattern.lastIndex;
+    }
+
+    return tokens;
+}
+
+/* Convert degrees to radians for trigonometric calculations */
+function radians(degrees) {
+    return degrees * Math.PI / 180;
+}
+
+/* Parse and evaluate a scientific expression */
+function evaluateScientific(input) {
+    const tokens = tokenizeScientific(input);
+    let index = 0;
+
+    const constants = {
+        pi: Math.PI,
+        e: Math.E,
+        Ans: scientificAnswer
+    };
+
+    const toAngle = value => angleMode === "DEG" ? radians(value) : value;
+    const fromAngle = value => angleMode === "DEG" ? value * 180 / Math.PI : value;
+
+    const functions = {
+        sin: x => Math.sin(toAngle(x)),
+        cos: x => Math.cos(toAngle(x)),
+        tan: x => {
+            const angle = toAngle(x);
+            if (Math.abs(Math.cos(angle)) < 1e-12) throw new Error("Undefined tangent");
+            return Math.tan(angle);
+        },
+        asin: x => fromAngle(Math.asin(x)),
+        acos: x => fromAngle(Math.acos(x)),
+        atan: x => fromAngle(Math.atan(x)),
+        sqrt: x => {
+            if (x < 0) throw new Error("Invalid square root");
+            return Math.sqrt(x);
+        },
+        log: x => {
+            if (x <= 0) throw new Error("Invalid logarithm");
+            return Math.log10(x);
+        },
+        ln: x => {
+            if (x <= 0) throw new Error("Invalid logarithm");
+            return Math.log(x);
+        },
+        abs: x => Math.abs(x),
+        floor: x => Math.floor(x),
+        ceil: x => Math.ceil(x)
+    };
+
+    function peek() {
+        return tokens[index];
+    }
+
+    function parseExpression() {
+        let value = parseTerm();
+
+        while (peek() === "+" || peek() === "-") {
+            const operator = tokens[index++];
+            const right = parseTerm();
+
+            value = operator === "+"
+                ? value + right
+                : value - right;
+        }
+
+        return value;
+    }
+
+    function parseTerm() {
+        let value = parseUnary();
+
+        while (peek() === "*" || peek() === "/" || peek() === "%") {
+            const operator = tokens[index++];
+            const right = parseUnary();
+
+            if ((operator === "/" || operator === "%") && right === 0) {
+                throw new Error("Division by zero");
+            }
+
+            if (operator === "*") value *= right;
+            if (operator === "/") value /= right;
+            if (operator === "%") value %= right;
+        }
+
+        return value;
+    }
+
+    function parseUnary() {
+        if (peek() === "+") {
+            index++;
+            return parseUnary();
+        }
+
+        if (peek() === "-") {
+            index++;
+            return -parseUnary();
+        }
+
+        return parsePower();
+    }
+
+    /* Exponentiation is right-associative */
+    function parsePower() {
+        let value = parsePrimary();
+
+        if (peek() === "^") {
+            index++;
+            value = Math.pow(value, parseUnary());
+        }
+
+        return value;
+    }
+
+    function parsePrimary() {
+        const token = peek();
+
+        if (token === undefined) {
+            throw new Error("Missing value");
+        }
+
+        function postfix(value) {
+            while (peek() === "!") {
+                index++;
+                if (!Number.isInteger(value) || value < 0 || value > 170) {
+                    throw new Error("Factorial requires an integer from 0 to 170");
+                }
+                let product = 1;
+                for (let n = 2; n <= value; n++) product *= n;
+                value = product;
+            }
+            return value;
+        }
+
+        /* Parentheses */
+        if (token === "(") {
+            index++;
+            const value = parseExpression();
+
+            if (peek() !== ")") {
+                throw new Error("Missing closing bracket");
+            }
+
+            index++;
+            return postfix(value);
+        }
+
+        /* Constants and functions */
+        if (/^[a-zA-Z]+$/.test(token)) {
+            index++;
+
+            if (Object.hasOwn(constants, token)) {
+                return postfix(constants[token]);
+            }
+
+            if (!Object.hasOwn(functions, token)) {
+                throw new Error("Unknown function");
+            }
+
+            if (peek() !== "(") {
+                throw new Error("Function requires parentheses");
+            }
+
+            index++;
+            const argument = parseExpression();
+
+            if (peek() !== ")") {
+                throw new Error("Missing closing bracket");
+            }
+
+            index++;
+            return postfix(functions[token](argument));
+        }
+
+        /* Numeric literals */
+        if (/^(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(token)) {
+            index++;
+            return postfix(Number(token));
+        }
+
+        throw new Error("Invalid expression");
+    }
+
+    const result = parseExpression();
+
+    if (index !== tokens.length) {
+        throw new Error("Unexpected extra input");
+    }
+
+    if (!Number.isFinite(result)) {
+        throw new Error("Invalid result");
+    }
+
+    return result;
+}
+
+/* =========================================
+   SCIENTIFIC KEYPAD INTERACTIONS
+   ========================================= */
+let scientificAnswer = 0;
+let angleMode = "DEG";
+let sciExpression = "";
+let sciShift = false;
+let sciAlpha = false;
+
+const sciExpressionDisplay = document.getElementById("sciExpression");
+const sciResultDisplay = document.getElementById("sciResult");
+const sciAngleLabel = document.getElementById("sciAngleLabel");
+const sciShiftLabel = document.getElementById("sciShiftLabel");
+const sciMemoryLabel = document.getElementById("sciMemoryLabel");
+
+/* Keep the physical-style screen and status indicators in sync. */
+function renderScientific() {
+    sciExpressionDisplay.textContent = sciExpression;
+    sciAngleLabel.textContent = angleMode;
+    sciShiftLabel.textContent = "SHIFT: " + (sciShift ? "ON" : "OFF");
+    sciMemoryLabel.textContent = "Ans: " + formatNumber(scientificAnswer);
+    document.querySelectorAll("#sciKeypad [data-sci-action='shift']")
+        .forEach(button => button.classList.toggle("active", sciShift));
+}
+
+/* Append a keypad value; a new digit after a completed answer starts fresh. */
+function insertScientific(value) {
+    if (sciJustCalculated && /^[0-9.]$/.test(value)) sciExpression = "";
+    sciJustCalculated = false;
+    sciExpression += value;
+    renderScientific();
+}
+let sciJustCalculated = false;
+
+function clearScientific() {
+    sciExpression = "";
+    sciResultDisplay.textContent = "0";
+    sciJustCalculated = false;
+    sciShift = false;
+    renderScientific();
+}
+function deleteScientific() {
+    sciExpression = sciExpression.slice(0, -1);
+    sciJustCalculated = false;
+    renderScientific();
+}
+function calculateScientificKeypad() {
+    if (!sciExpression.trim()) return;
+    try {
+        const value = evaluateScientific(sciExpression);
+        scientificAnswer = value;
+        sciResultDisplay.textContent = formatNumber(value);
+        sciJustCalculated = true;
+        renderScientific();
+    } catch (error) {
+        sciResultDisplay.textContent = "Error";
+        sciJustCalculated = false;
+    }
+}
+
+/* Shift swaps selected functions to their inverse or alternate operation. */
+const sciShiftMap = {
+    "sin(": "asin(", "cos(": "acos(", "tan(": "atan(",
+    "log(": "10^(", "ln(": "e^(", "sqrt(": "^(2)"
+};
+
+document.getElementById("sciKeypad").addEventListener("click", event => {
+    const button = event.target.closest("button");
+    if (!button) return;
+
+    const action = button.dataset.sciAction;
+    if (action === "shift") {
+        sciShift = !sciShift;
+        sciAlpha = false;
+        renderScientific();
+        return;
+    }
+    if (action === "alpha") {
+        sciAlpha = !sciAlpha;
+        return;
+    }
+    if (action === "angle") {
+        angleMode = angleMode === "DEG" ? "RAD" : "DEG";
+        renderScientific();
+        return;
+    }
+    if (action === "clear") { clearScientific(); return; }
+    if (action === "back") { deleteScientific(); return; }
+    if (action === "equals") {
+        calculateScientificKeypad();
+        sciShift = false;
+        renderScientific();
+        return;
+    }
+
+    let value = button.dataset.sciInsert;
+    if (sciShift && sciShiftMap[value]) value = sciShiftMap[value];
+    insertScientific(value);
+    sciShift = false;
+    sciAlpha = false;
+    renderScientific();
+});
+
+/* Keyboard support while the scientific panel is active. */
+document.addEventListener("keydown", event => {
+    const activePanel = document.querySelector(".tool-panel.active");
+    if (!activePanel || activePanel.id !== "scientific" ||
+        event.target.matches("input, select, textarea")) return;
+
+    if (/^[0-9.]$/.test(event.key) || /^[()+\-*/%^!]$/.test(event.key)) {
+        insertScientific(event.key);
+    } else if (event.key === "Enter" || event.key === "=") {
+        event.preventDefault();
+        calculateScientificKeypad();
+    } else if (event.key === "Backspace") {
+        event.preventDefault();
+        deleteScientific();
+    } else if (event.key === "Escape") {
+        clearScientific();
+    }
+});
+
+renderScientific();
+
+/* =========================================
+   5. CURRENCY CONVERTER
+   ========================================= */
+
+/* Currency converter: try two public exchange-rate services */
+async function convertCurrency() {
+    let amount;
+    try {
+        amount = readNumber("currencyAmount");
+    } catch {
+        showText("currencyOutput", "Enter a valid amount.");
+        return;
+    }
+
+    if (amount < 0) {
+        showText("currencyOutput", "Amount cannot be negative.");
+        return;
+    }
+
+    const from = document.getElementById("fromCurrency").value;
+    const to = document.getElementById("toCurrency").value;
+    const button = document.getElementById("currencyButton");
+
+    if (from === to) {
+        showText("currencyOutput", `${formatNumber(amount)} ${from} = ${formatNumber(amount)} ${to}`);
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Loading...";
+    showText("currencyOutput", "Fetching exchange rates...");
+
+    try {
+        let rate = null;
+        let lastError = null;
+        const urls = [
+            `https://open.er-api.com/v6/latest/${encodeURIComponent(from)}`,
+            `https://api.frankfurter.app/latest?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+        ];
+
+        for (const url of urls) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const candidate = data.rates?.[to];
+                if (Number.isFinite(candidate)) {
+                    rate = candidate;
+                    break;
+                }
+                throw new Error("Rate unavailable for selected currency");
+            } catch (error) {
+                lastError = error;
+            }
+        }
+
+        if (!Number.isFinite(rate)) throw lastError || new Error("Rate unavailable");
+        const converted = amount * rate;
+        showText("currencyOutput", `${formatNumber(amount)} ${from} = ${formatNumber(converted, 4)} ${to}`);
+    } catch {
+        showText("currencyOutput", "Exchange rates unavailable. Check your internet connection or run this page using Live Server.");
+    } finally {
+        button.disabled = false;
+        button.textContent = "Convert";
+    }
+}
+
+document.getElementById("currencyButton")
+    .addEventListener("click", convertCurrency);
+
+/* =========================================
+   6. UNIT CONVERTER
+   ========================================= */
+
+/* Base-unit conversion factors for supported categories */
+const unitDefinitions = {
+    length: {
+        Meter: 1,
+        Kilometer: 1000,
+        Centimeter: 0.01,
+        Millimeter: 0.001,
+        Mile: 1609.344,
+        Foot: 0.3048,
+        Inch: 0.0254
+    },
+    weight: {
+        Kilogram: 1,
+        Gram: 0.001,
+        Milligram: 0.000001,
+        Pound: 0.45359237,
+        Ounce: 0.028349523125,
+        Tonne: 1000
+    },
+    time: {
+        Second: 1,
+        Minute: 60,
+        Hour: 3600,
+        Day: 86400
+    },
+    speed: {
+        "m/s": 1,
+        "km/h": 1 / 3.6,
+        mph: 0.44704,
+        "ft/s": 0.3048
+    }
+};
+
+/* Update source and destination dropdowns when category changes */
+function updateUnits() {
+    const category = document.getElementById("unitCategory").value;
+    const from = document.getElementById("unitFrom");
+    const to = document.getElementById("unitTo");
+
+    const units = category === "temperature"
+        ? ["Celsius", "Fahrenheit", "Kelvin"]
+        : Object.keys(unitDefinitions[category]);
+
+    from.replaceChildren();
+    to.replaceChildren();
+
+    units.forEach(unit => {
+        from.add(new Option(unit, unit));
+        to.add(new Option(unit, unit));
+    });
+
+    if (units.length > 1) to.selectedIndex = 1;
+}
+
+/* Convert between selected units */
+function convertUnit() {
+    let value;
+
+    try {
+        value = readNumber("unitValue");
+    } catch {
+        showText("unitOutput", "Enter a valid value.");
+        return;
+    }
+
+    const category = document.getElementById("unitCategory").value;
+    const from = document.getElementById("unitFrom").value;
+    const to = document.getElementById("unitTo").value;
+
+    let result;
+
+    if (category === "temperature") {
+        /* Convert source temperature to Celsius first */
+        let celsius;
+
+        if (from === "Celsius") celsius = value;
+        if (from === "Fahrenheit") celsius = (value - 32) * 5 / 9;
+        if (from === "Kelvin") celsius = value - 273.15;
+
+        /* Convert Celsius to the destination unit */
+        if (to === "Celsius") result = celsius;
+        if (to === "Fahrenheit") result = celsius * 9 / 5 + 32;
+        if (to === "Kelvin") result = celsius + 273.15;
+    } else {
+        /* Convert through the category's base unit */
+        const factors = unitDefinitions[category];
+        result = value * factors[from] / factors[to];
+    }
+
+    if (!Number.isFinite(result)) {
+        showText("unitOutput", "Unable to convert this value.");
+        return;
+    }
+
+    showText(
+        "unitOutput",
+        `${formatNumber(value)} ${from} = ${formatNumber(result)} ${to}`
+    );
+}
+
+document.getElementById("unitCategory")
+    .addEventListener("change", updateUnits);
+
+document.getElementById("unitButton")
+    .addEventListener("click", convertUnit);
+
+/* =========================================
+   7. GST CALCULATOR
+   ========================================= */
+
+/* Add GST to a base amount or extract it from an inclusive amount */
+function calculateGST() {
+    let amount;
+
+    try {
+        amount = readNumber("gstAmount");
+    } catch {
+        showText("gstOutput", "Enter a valid amount.");
+        return;
+    }
+
+    const rate = Number(document.getElementById("gstRate").value);
+    const mode = document.getElementById("gstMode").value;
+
+    if (amount < 0 || !Number.isFinite(rate)) {
+        showText("gstOutput", "Enter valid values.");
+        return;
+    }
+
+    let base, tax, total;
+
+    if (mode === "add") {
+        base = amount;
+        tax = base * rate / 100;
+        total = base + tax;
+    } else {
+        total = amount;
+        base = total / (1 + rate / 100);
+        tax = total - base;
+    }
+
+    showText(
+        "gstOutput",
+        `Base: ₹${base.toFixed(2)} | GST: ₹${tax.toFixed(2)} | Total: ₹${total.toFixed(2)}`
+    );
+}
+
+document.getElementById("gstButton")
+    .addEventListener("click", calculateGST);
+
+/* =========================================
+   8. EMI CALCULATOR
+   ========================================= */
+
+/* Calculate monthly payment using the standard EMI formula */
+function calculateEMI() {
+    let principal, annualRate, years;
+
+    try {
+        principal = readNumber("loan");
+        annualRate = readNumber("emiRate");
+        years = readNumber("years");
+    } catch {
+        showText("emiOutput", "Enter valid loan details.");
+        return;
+    }
+
+    if (principal <= 0 || annualRate < 0 || years <= 0) {
+        showText("emiOutput", "Loan and duration must be positive; rate cannot be negative.");
+        return;
+    }
+
+    const months = years * 12;
+    const monthlyRate = annualRate / 1200;
+
+    if (!Number.isFinite(months) || months > 12000) {
+        showText("emiOutput", "Duration is too large.");
+        return;
+    }
+
+    /* Zero-interest loans use simple division */
+    const emi = monthlyRate === 0
+        ? principal / months
+        : principal * monthlyRate *
+          Math.pow(1 + monthlyRate, months) /
+          (Math.pow(1 + monthlyRate, months) - 1);
+
+    const total = emi * months;
+    const interest = total - principal;
+
+    if (![emi, total, interest].every(Number.isFinite)) {
+        showText("emiOutput", "Unable to calculate these values.");
+        return;
+    }
+
+    showText(
+        "emiOutput",
+        `Monthly EMI: ₹${emi.toFixed(2)} | Total Interest: ₹${interest.toFixed(2)} | Total Payment: ₹${total.toFixed(2)}`
+    );
+}
+
+document.getElementById("emiButton")
+    .addEventListener("click", calculateEMI);
+
+/* =========================================
+   9. SIMPLE AND COMPOUND INTEREST
+   ========================================= */
+
+/* Calculate annual simple or annually compounded interest */
+function calculateInterest() {
+    let principal, rate, years;
+
+    try {
+        principal = readNumber("principal");
+        rate = readNumber("interestRate");
+        years = readNumber("interestTime");
+    } catch {
+        showText("interestOutput", "Enter valid values.");
+        return;
+    }
+
+    const type = document.getElementById("interestType").value;
+
+    if (principal < 0 || rate < 0 || years < 0) {
+        showText("interestOutput", "Values cannot be negative.");
+        return;
+    }
+
+    /* Select the correct formula for the chosen interest type */
+    const total = type === "simple"
+        ? principal * (1 + rate * years / 100)
+        : principal * Math.pow(1 + rate / 100, years);
+
+    const interest = total - principal;
+
+    if (!Number.isFinite(total)) {
+        showText("interestOutput", "Unable to calculate these values.");
+        return;
+    }
+
+    showText(
+        "interestOutput",
+        `Interest: ₹${interest.toFixed(2)} | Total Amount: ₹${total.toFixed(2)}`
+    );
+}
+
+document.getElementById("interestButton")
+    .addEventListener("click", calculateInterest);
+
+/* =========================================
+   10. DISCOUNT CALCULATOR
+   ========================================= */
+
+/* Calculate the discount amount and final price */
+function calculateDiscount() {
+    let price, rate;
+
+    try {
+        price = readNumber("price");
+        rate = readNumber("discountRate");
+    } catch {
+        showText("discountOutput", "Enter valid values.");
+        return;
+    }
+
+    if (price < 0 || rate < 0 || rate > 100) {
+        showText("discountOutput", "Price must be non-negative and discount must be 0–100%.");
+        return;
+    }
+
+    const discount = price * rate / 100;
+    const finalPrice = price - discount;
+
+    showText(
+        "discountOutput",
+        `Discount: ₹${discount.toFixed(2)} | Final Price: ₹${finalPrice.toFixed(2)}`
+    );
+}
+
+document.getElementById("discountButton")
+    .addEventListener("click", calculateDiscount);
+
+/* =========================================
+   11. KEYBOARD SUPPORT
+   ========================================= */
+
+/* Allow keyboard input while the basic calculator is selected */
+document.addEventListener("keydown", event => {
+    const activePanel = document.querySelector(".tool-panel.active");
+
+    /* Do not hijack typing in form fields */
+    if (
+        !activePanel ||
+        activePanel.id !== "basic" ||
+        event.target.matches("input, select, textarea")
+    ) {
+        return;
+    }
+
+    const key = event.key;
+
+    if (/^[0-9.]$/.test(key)) {
+        appendBasic(key);
+    } else if (key === "+") {
+        appendBasic("+");
+    } else if (key === "-") {
+        appendBasic("-");
+    } else if (key === "*") {
+        appendBasic("×");
+    } else if (key === "/") {
+        event.preventDefault();
+        appendBasic("÷");
+    } else if (key === "%") {
+        appendBasic("%");
+    } else if (key === "Enter" || key === "=") {
+        event.preventDefault();
+        calculateBasic();
+    } else if (key === "Backspace") {
+        event.preventDefault();
+        deleteBasic();
+    } else if (key === "Escape") {
+        clearBasic();
+    }
+});
+
+/* =========================================
+   12. INITIALIZATION
+   ========================================= */
+
+/* Populate the unit converter when the app loads */
+updateUnits();
+</script>
+</body>
+</html>
